@@ -58,3 +58,29 @@ For the todo app using dixous:
 
 ![](dixous-todo.png)
 
+## Switching the examples
+
+Modify `src/lib.rs`
+
+Let's say you want to build dioxus_mathml_playground:
+
+```rust
+impl Guest for Component {
+    fn run() {
+        dioxus_mathml_playground::run();
+    }
+
+    fn on_event(handler_id: String, event_type: String) {
+        dioxus_mathml_playground::on_event(&handler_id);
+    }
+}
+```
+
+Change to method to dioxus_mathml_playground::on_event and dioxus_mathml_playground::run.
+
+
+Then build again
+
+```
+cargo component build --release --target wasm32-unknown-unknown
+```

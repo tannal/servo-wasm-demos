@@ -53,3 +53,8 @@ The browser loads the WebAssembly binary directly as a first-class script elemen
 ```bash
 ./mach run test_wasm.html
 ```
+
+For the todo app using dixous:
+
+![](dixous-todo.png)
+

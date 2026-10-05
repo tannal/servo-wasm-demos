@@ -245,6 +245,103 @@ pub mod servo {
             }
             impl Element {
                 #[allow(unused_unsafe, clippy::all)]
+                pub fn get_property(&self, name: &str) -> _rt::String {
+                    unsafe {
+                        #[cfg_attr(target_pointer_width = "64", repr(align(8)))]
+                        #[cfg_attr(target_pointer_width = "32", repr(align(4)))]
+                        struct RetArea(
+                            [::core::mem::MaybeUninit<
+                                u8,
+                            >; 2 * ::core::mem::size_of::<*const u8>()],
+                        );
+                        let mut ret_area = RetArea(
+                            [::core::mem::MaybeUninit::uninit(); 2
+                                * ::core::mem::size_of::<*const u8>()],
+                        );
+                        let vec0 = name;
+                        let ptr0 = vec0.as_ptr().cast::<u8>();
+                        let len0 = vec0.len();
+                        let ptr1 = ret_area.0.as_mut_ptr().cast::<u8>();
+                        #[cfg(target_arch = "wasm32")]
+                        #[link(wasm_import_module = "servo:dom/document@0.1.0")]
+                        unsafe extern "C" {
+                            #[link_name = "[method]element.get-property"]
+                            fn wit_import2(_: i32, _: *mut u8, _: usize, _: *mut u8);
+                        }
+                        #[cfg(not(target_arch = "wasm32"))]
+                        unsafe extern "C" fn wit_import2(
+                            _: i32,
+                            _: *mut u8,
+                            _: usize,
+                            _: *mut u8,
+                        ) {
+                            unreachable!()
+                        }
+                        unsafe {
+                            wit_import2(
+                                (self).handle() as i32,
+                                ptr0.cast_mut(),
+                                len0,
+                                ptr1,
+                            )
+                        };
+                        let l3 = *ptr1.add(0).cast::<*mut u8>();
+                        let l4 = *ptr1
+                            .add(::core::mem::size_of::<*const u8>())
+                            .cast::<usize>();
+                        let len5 = l4;
+                        let bytes5 = _rt::Vec::from_raw_parts(l3.cast(), len5, len5);
+                        let result6 = _rt::string_lift(bytes5);
+                        result6
+                    }
+                }
+            }
+            impl Element {
+                #[allow(unused_unsafe, clippy::all)]
+                pub fn set_property(&self, name: &str, value: &str) -> () {
+                    unsafe {
+                        let vec0 = name;
+                        let ptr0 = vec0.as_ptr().cast::<u8>();
+                        let len0 = vec0.len();
+                        let vec1 = value;
+                        let ptr1 = vec1.as_ptr().cast::<u8>();
+                        let len1 = vec1.len();
+                        #[cfg(target_arch = "wasm32")]
+                        #[link(wasm_import_module = "servo:dom/document@0.1.0")]
+                        unsafe extern "C" {
+                            #[link_name = "[method]element.set-property"]
+                            fn wit_import2(
+                                _: i32,
+                                _: *mut u8,
+                                _: usize,
+                                _: *mut u8,
+                                _: usize,
+                            );
+                        }
+                        #[cfg(not(target_arch = "wasm32"))]
+                        unsafe extern "C" fn wit_import2(
+                            _: i32,
+                            _: *mut u8,
+                            _: usize,
+                            _: *mut u8,
+                            _: usize,
+                        ) {
+                            unreachable!()
+                        }
+                        unsafe {
+                            wit_import2(
+                                (self).handle() as i32,
+                                ptr0.cast_mut(),
+                                len0,
+                                ptr1.cast_mut(),
+                                len1,
+                            )
+                        };
+                    }
+                }
+            }
+            impl Element {
+                #[allow(unused_unsafe, clippy::all)]
                 pub fn append_child(&self, child: &Element) -> () {
                     unsafe {
                         #[cfg(target_arch = "wasm32")]
@@ -827,27 +924,28 @@ pub(crate) use __export_app_impl as export;
 )]
 #[doc(hidden)]
 #[allow(clippy::octal_escapes)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 924] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xa2\x06\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1007] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xf5\x06\x01A\x02\x01\
 A\x08\x01B\x03\x01@\x01\x07messages\x01\0\x04\0\x03log\x01\0\x04\0\x05error\x01\0\
-\x03\0\x17servo:dom/console@0.1.0\x05\0\x01B\x1e\x04\0\x07element\x03\x01\x01h\0\
-\x01@\x03\x04self\x01\x04names\x05values\x01\0\x04\0\x1d[method]element.set-attr\
-ibute\x01\x02\x01ks\x01@\x02\x04self\x01\x04names\0\x03\x04\0\x1d[method]element\
-.get-attribute\x01\x04\x01@\x02\x04self\x01\x05child\x01\x01\0\x04\0\x1c[method]\
-element.append-child\x01\x05\x01@\x03\x04self\x01\x05child\x01\x0freference-chil\
-d\x01\x01\0\x04\0\x1d[method]element.insert-before\x01\x06\x04\0\x1c[method]elem\
-ent.remove-child\x01\x05\x01@\x02\x04self\x01\x04texts\x01\0\x04\0\x20[method]el\
-ement.set-text-content\x01\x07\x01@\x01\x04self\x01\0s\x04\0\x20[method]element.\
-get-text-content\x01\x08\x01@\x03\x04self\x01\x0aevent-types\x0ahandler-ids\x01\0\
-\x04\0\"[method]element.add-event-listener\x01\x09\x04\0%[method]element.remove-\
-event-listener\x01\x09\x01i\0\x01j\x01\x0a\x01s\x01@\x01\x03tags\0\x0b\x04\0\x0e\
-create-element\x01\x0c\x01@\0\0\x0b\x04\0\x08get-body\x01\x0d\x01@\x01\x02ids\0\x0b\
-\x04\0\x11get-element-by-id\x01\x0e\x01k\x0a\x01@\x01\x08selectors\0\x0f\x04\0\x0e\
-query-selector\x01\x10\x03\0\x18servo:dom/document@0.1.0\x05\x01\x01@\0\x01\0\x04\
-\0\x03run\x01\x02\x01@\x02\x0ahandler-ids\x0aevent-types\x01\0\x04\0\x08on-event\
-\x01\x03\x04\0\x13servo:dom/app@0.1.0\x04\0\x0b\x09\x01\0\x03app\x03\0\0\0G\x09p\
-roducers\x01\x0cprocessed-by\x02\x0dwit-component\x070.227.1\x10wit-bindgen-rust\
-\x060.41.0";
+\x03\0\x17servo:dom/console@0.1.0\x05\0\x01B!\x04\0\x07element\x03\x01\x01h\0\x01\
+@\x03\x04self\x01\x04names\x05values\x01\0\x04\0\x1d[method]element.set-attribut\
+e\x01\x02\x01ks\x01@\x02\x04self\x01\x04names\0\x03\x04\0\x1d[method]element.get\
+-attribute\x01\x04\x01@\x02\x04self\x01\x04names\0s\x04\0\x1c[method]element.get\
+-property\x01\x05\x04\0\x1c[method]element.set-property\x01\x02\x01@\x02\x04self\
+\x01\x05child\x01\x01\0\x04\0\x1c[method]element.append-child\x01\x06\x01@\x03\x04\
+self\x01\x05child\x01\x0freference-child\x01\x01\0\x04\0\x1d[method]element.inse\
+rt-before\x01\x07\x04\0\x1c[method]element.remove-child\x01\x06\x01@\x02\x04self\
+\x01\x04texts\x01\0\x04\0\x20[method]element.set-text-content\x01\x08\x01@\x01\x04\
+self\x01\0s\x04\0\x20[method]element.get-text-content\x01\x09\x01@\x03\x04self\x01\
+\x0aevent-types\x0ahandler-ids\x01\0\x04\0\"[method]element.add-event-listener\x01\
+\x0a\x04\0%[method]element.remove-event-listener\x01\x0a\x01i\0\x01j\x01\x0b\x01\
+s\x01@\x01\x03tags\0\x0c\x04\0\x0ecreate-element\x01\x0d\x01@\0\0\x0c\x04\0\x08g\
+et-body\x01\x0e\x01@\x01\x02ids\0\x0c\x04\0\x11get-element-by-id\x01\x0f\x01k\x0b\
+\x01@\x01\x08selectors\0\x10\x04\0\x0equery-selector\x01\x11\x03\0\x18servo:dom/\
+document@0.1.0\x05\x01\x01@\0\x01\0\x04\0\x03run\x01\x02\x01@\x02\x0ahandler-ids\
+\x0aevent-types\x01\0\x04\0\x08on-event\x01\x03\x04\0\x13servo:dom/app@0.1.0\x04\
+\0\x0b\x09\x01\0\x03app\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-c\
+omponent\x070.227.1\x10wit-bindgen-rust\x060.41.0";
 #[inline(never)]
 #[doc(hidden)]
 pub fn __link_custom_section_describing_imports() {

@@ -1,7 +1,5 @@
 use dioxus_core::{Element, VirtualDom};
 use dioxus_core_macro::rsx;
-use dioxus_hooks::use_signal;
-use dioxus_signals::Readable;
 use std::cell::RefCell;
 use core::sync::atomic::{AtomicU32, Ordering::SeqCst};
 
@@ -105,11 +103,30 @@ fn TodoApp() -> Element {
             h1 { "📋 Dioxus TodoMVC App" }
             p { class: "subtitle", "Native Component Model + Dioxus VirtualDom (Zero JS)" }
 
-            // Action Header & Form
-            div { class: "counter-section",
-                div { id: "todo-stats", class: "counter-badge", style: "font-size: 1rem; color: #89b4fa;", "3 tasks remaining" }
-                button { class: "btn btn-primary", id: "btn-add-todo", "➕ Add Task" }
-                button { class: "btn btn-secondary", id: "btn-clear-done", "🧹 Clear Completed" }
+            // Input Form Section
+            div { style: "display: flex; gap: 8px; margin-bottom: 16px;",
+                input {
+                    id: "new-todo-input",
+                    placeholder: "What needs to be done?",
+                    style: "flex: 1; padding: 10px 14px; border-radius: 8px; border: 1px solid #45475a; background: #11111b; color: #cdd6f4; font-size: 0.95rem; outline: none;",
+                }
+                button {
+                    class: "btn btn-primary",
+                    id: "btn-add-todo",
+                    style: "white-space: nowrap;",
+                    "➕ Add Task"
+                }
+                button {
+                    class: "btn btn-secondary",
+                    id: "btn-clear-done",
+                    style: "white-space: nowrap;",
+                    "🧹 Clear Done"
+                }
+            }
+
+            // Status bar
+            div { style: "margin-bottom: 12px; font-size: 0.9rem; color: #89b4fa; font-weight: 500;",
+                span { id: "todo-stats", "3 tasks remaining" }
             }
 
             // Task List Container
@@ -120,12 +137,8 @@ fn TodoApp() -> Element {
 
 pub fn run() {
     console::log("[Dioxus Todo]: Mounting TodoMVC VirtualDom...");
-    // let body = document::get_body().expect("body");
     let container = document::get_element_by_id("todo-app-root")
-    .unwrap_or_else(|_| document::get_body().expect("Reason"));
-
-    // Clear previous contents
-    // body.set_text_content("");
+        .unwrap_or_else(|_| document::get_body().expect("Reason"));
 
     // Initialize default items
     TODOS.with(|todos| {
@@ -155,19 +168,27 @@ pub fn on_event(handler_id: &str) {
     console::log(&format!("[Dioxus Todo]: Action triggered: {}", handler_id));
 
     if handler_id == "btn-add-todo" {
-        let id = NEXT_TODO_ID.fetch_add(1, SeqCst);
-        let task_names = [
-            "Test MathML Core layout in Servo",
-            "Present W3C Wasm CG Issue #371 slides",
-            "Benchmark Wasm Component vs JS DOM latency",
-            "Write RFC for WHATWG script type=wasm-component",
-        ];
-        let name = task_names[(id as usize) % task_names.len()];
+        // Read text from the real <input> element!
+        let mut task_text = String::new();
+        if let Ok(input_elem) = document::get_element_by_id("new-todo-input") {
+            task_text = input_elem.get_property("value").trim().to_string();
+            // Reset input after adding
+            input_elem.set_property("value", "");
+        }
 
+        // Fallback default text if input was empty
+        if task_text.is_empty() {
+            let id = NEXT_TODO_ID.fetch_add(1, SeqCst);
+            task_text = format!("Task #{}: Benchmark Wasm Component performance", id);
+        } else {
+            NEXT_TODO_ID.fetch_add(1, SeqCst);
+        }
+
+        let new_id = NEXT_TODO_ID.load(SeqCst);
         TODOS.with(|todos| {
             todos.borrow_mut().push(TodoItem {
-                id,
-                text: format!("{}: {}", id, name),
+                id: new_id,
+                text: task_text,
                 completed: false,
             });
         });

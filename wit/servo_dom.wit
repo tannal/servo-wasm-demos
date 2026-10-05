@@ -5,14 +5,14 @@ interface console {
     error: func(message: string);
 }
 
-interface placeholder {
-    describe: func(v: u32);
-}
-
 interface document {
     resource element {
         set-attribute: func(name: string, value: string);
         get-attribute: func(name: string) -> option<string>;
+
+        get-property: func(name: string) -> string;
+        set-property: func(name: string, value: string);
+
         append-child: func(child: borrow<element>);
         insert-before: func(child: borrow<element>, reference-child: borrow<element>);
         remove-child: func(child: borrow<element>);

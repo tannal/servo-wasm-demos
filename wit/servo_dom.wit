@@ -5,15 +5,27 @@ interface console {
     error: func(message: string);
 }
 
+interface placeholder {
+    describe: func(v: u32);
+}
+
 interface document {
     resource element {
         set-attribute: func(name: string, value: string);
+        get-attribute: func(name: string) -> option<string>;
         append-child: func(child: borrow<element>);
+        insert-before: func(child: borrow<element>, reference-child: borrow<element>);
+        remove-child: func(child: borrow<element>);
         set-text-content: func(text: string);
+        get-text-content: func() -> string;
+        add-event-listener: func(event-type: string, handler-id: string);
+        remove-event-listener: func(event-type: string, handler-id: string);
     }
 
     create-element: func(tag: string) -> result<element, string>;
     get-body: func() -> result<element, string>;
+    get-element-by-id: func(id: string) -> result<element, string>;
+    query-selector: func(selector: string) -> option<element>;
 }
 
 world app {
@@ -21,4 +33,5 @@ world app {
     import document;
 
     export run: func();
+    export on-event: func(handler-id: string, event-type: string);
 }

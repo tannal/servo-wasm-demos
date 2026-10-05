@@ -1,19 +1,17 @@
 [package]
 name = "wasm_guest"
-version.workspace = true
-authors.workspace = true
-repository.workspace = true
-description.workspace = true
-license.workspace = true
-edition.workspace = true
-publish.workspace = true
-rust-version.workspace = true
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
 
 [dependencies]
 wit-bindgen-rt = { version = "0.44.0", features = ["bitflags"] }
-
-[lints]
-workspace = true
+dioxus-core = { version = "0.6.3", default-features = false }
+dioxus-core-macro = "0.6.2"
+dioxus-signals = { version = "0.6.2", default-features = false }
+dioxus-hooks = { version = "0.6.2", default-features = false }
+dioxus-html = { version = "0.6.2", default-features = false }
 
 [lib]
 crate-type = ["cdylib"]

@@ -410,6 +410,71 @@ pub mod servo {
             }
             impl Element {
                 #[allow(unused_unsafe, clippy::all)]
+                pub fn replace_child(
+                    &self,
+                    new_child: &Element,
+                    old_child: &Element,
+                ) -> () {
+                    unsafe {
+                        #[cfg(target_arch = "wasm32")]
+                        #[link(wasm_import_module = "servo:dom/document@0.1.0")]
+                        unsafe extern "C" {
+                            #[link_name = "[method]element.replace-child"]
+                            fn wit_import0(_: i32, _: i32, _: i32);
+                        }
+                        #[cfg(not(target_arch = "wasm32"))]
+                        unsafe extern "C" fn wit_import0(_: i32, _: i32, _: i32) {
+                            unreachable!()
+                        }
+                        unsafe {
+                            wit_import0(
+                                (self).handle() as i32,
+                                (new_child).handle() as i32,
+                                (old_child).handle() as i32,
+                            )
+                        };
+                    }
+                }
+            }
+            impl Element {
+                #[allow(unused_unsafe, clippy::all)]
+                pub fn parent_node(&self) -> Option<Element> {
+                    unsafe {
+                        #[repr(align(4))]
+                        struct RetArea([::core::mem::MaybeUninit<u8>; 8]);
+                        let mut ret_area = RetArea(
+                            [::core::mem::MaybeUninit::uninit(); 8],
+                        );
+                        let ptr0 = ret_area.0.as_mut_ptr().cast::<u8>();
+                        #[cfg(target_arch = "wasm32")]
+                        #[link(wasm_import_module = "servo:dom/document@0.1.0")]
+                        unsafe extern "C" {
+                            #[link_name = "[method]element.parent-node"]
+                            fn wit_import1(_: i32, _: *mut u8);
+                        }
+                        #[cfg(not(target_arch = "wasm32"))]
+                        unsafe extern "C" fn wit_import1(_: i32, _: *mut u8) {
+                            unreachable!()
+                        }
+                        unsafe { wit_import1((self).handle() as i32, ptr0) };
+                        let l2 = i32::from(*ptr0.add(0).cast::<u8>());
+                        let result4 = match l2 {
+                            0 => None,
+                            1 => {
+                                let e = {
+                                    let l3 = *ptr0.add(4).cast::<i32>();
+                                    unsafe { Element::from_handle(l3 as u32) }
+                                };
+                                Some(e)
+                            }
+                            _ => _rt::invalid_enum_discriminant(),
+                        };
+                        result4
+                    }
+                }
+            }
+            impl Element {
+                #[allow(unused_unsafe, clippy::all)]
                 pub fn set_text_content(&self, text: &str) -> () {
                     unsafe {
                         let vec0 = text;
@@ -587,6 +652,69 @@ pub mod servo {
                     #[link(wasm_import_module = "servo:dom/document@0.1.0")]
                     unsafe extern "C" {
                         #[link_name = "create-element"]
+                        fn wit_import2(_: *mut u8, _: usize, _: *mut u8);
+                    }
+                    #[cfg(not(target_arch = "wasm32"))]
+                    unsafe extern "C" fn wit_import2(_: *mut u8, _: usize, _: *mut u8) {
+                        unreachable!()
+                    }
+                    unsafe { wit_import2(ptr0.cast_mut(), len0, ptr1) };
+                    let l3 = i32::from(*ptr1.add(0).cast::<u8>());
+                    let result8 = match l3 {
+                        0 => {
+                            let e = {
+                                let l4 = *ptr1
+                                    .add(::core::mem::size_of::<*const u8>())
+                                    .cast::<i32>();
+                                unsafe { Element::from_handle(l4 as u32) }
+                            };
+                            Ok(e)
+                        }
+                        1 => {
+                            let e = {
+                                let l5 = *ptr1
+                                    .add(::core::mem::size_of::<*const u8>())
+                                    .cast::<*mut u8>();
+                                let l6 = *ptr1
+                                    .add(2 * ::core::mem::size_of::<*const u8>())
+                                    .cast::<usize>();
+                                let len7 = l6;
+                                let bytes7 = _rt::Vec::from_raw_parts(
+                                    l5.cast(),
+                                    len7,
+                                    len7,
+                                );
+                                _rt::string_lift(bytes7)
+                            };
+                            Err(e)
+                        }
+                        _ => _rt::invalid_enum_discriminant(),
+                    };
+                    result8
+                }
+            }
+            #[allow(unused_unsafe, clippy::all)]
+            pub fn create_text_node(text: &str) -> Result<Element, _rt::String> {
+                unsafe {
+                    #[cfg_attr(target_pointer_width = "64", repr(align(8)))]
+                    #[cfg_attr(target_pointer_width = "32", repr(align(4)))]
+                    struct RetArea(
+                        [::core::mem::MaybeUninit<
+                            u8,
+                        >; 3 * ::core::mem::size_of::<*const u8>()],
+                    );
+                    let mut ret_area = RetArea(
+                        [::core::mem::MaybeUninit::uninit(); 3
+                            * ::core::mem::size_of::<*const u8>()],
+                    );
+                    let vec0 = text;
+                    let ptr0 = vec0.as_ptr().cast::<u8>();
+                    let len0 = vec0.len();
+                    let ptr1 = ret_area.0.as_mut_ptr().cast::<u8>();
+                    #[cfg(target_arch = "wasm32")]
+                    #[link(wasm_import_module = "servo:dom/document@0.1.0")]
+                    unsafe extern "C" {
+                        #[link_name = "create-text-node"]
                         fn wit_import2(_: *mut u8, _: usize, _: *mut u8);
                     }
                     #[cfg(not(target_arch = "wasm32"))]
@@ -924,24 +1052,27 @@ pub(crate) use __export_app_impl as export;
 )]
 #[doc(hidden)]
 #[allow(clippy::octal_escapes)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1007] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xf5\x06\x01A\x02\x01\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1149] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\x83\x08\x01A\x02\x01\
 A\x08\x01B\x03\x01@\x01\x07messages\x01\0\x04\0\x03log\x01\0\x04\0\x05error\x01\0\
-\x03\0\x17servo:dom/console@0.1.0\x05\0\x01B!\x04\0\x07element\x03\x01\x01h\0\x01\
+\x03\0\x17servo:dom/console@0.1.0\x05\0\x01B'\x04\0\x07element\x03\x01\x01h\0\x01\
 @\x03\x04self\x01\x04names\x05values\x01\0\x04\0\x1d[method]element.set-attribut\
 e\x01\x02\x01ks\x01@\x02\x04self\x01\x04names\0\x03\x04\0\x1d[method]element.get\
 -attribute\x01\x04\x01@\x02\x04self\x01\x04names\0s\x04\0\x1c[method]element.get\
 -property\x01\x05\x04\0\x1c[method]element.set-property\x01\x02\x01@\x02\x04self\
 \x01\x05child\x01\x01\0\x04\0\x1c[method]element.append-child\x01\x06\x01@\x03\x04\
 self\x01\x05child\x01\x0freference-child\x01\x01\0\x04\0\x1d[method]element.inse\
-rt-before\x01\x07\x04\0\x1c[method]element.remove-child\x01\x06\x01@\x02\x04self\
-\x01\x04texts\x01\0\x04\0\x20[method]element.set-text-content\x01\x08\x01@\x01\x04\
-self\x01\0s\x04\0\x20[method]element.get-text-content\x01\x09\x01@\x03\x04self\x01\
-\x0aevent-types\x0ahandler-ids\x01\0\x04\0\"[method]element.add-event-listener\x01\
-\x0a\x04\0%[method]element.remove-event-listener\x01\x0a\x01i\0\x01j\x01\x0b\x01\
-s\x01@\x01\x03tags\0\x0c\x04\0\x0ecreate-element\x01\x0d\x01@\0\0\x0c\x04\0\x08g\
-et-body\x01\x0e\x01@\x01\x02ids\0\x0c\x04\0\x11get-element-by-id\x01\x0f\x01k\x0b\
-\x01@\x01\x08selectors\0\x10\x04\0\x0equery-selector\x01\x11\x03\0\x18servo:dom/\
+rt-before\x01\x07\x04\0\x1c[method]element.remove-child\x01\x06\x01@\x03\x04self\
+\x01\x09new-child\x01\x09old-child\x01\x01\0\x04\0\x1d[method]element.replace-ch\
+ild\x01\x08\x01i\0\x01k\x09\x01@\x01\x04self\x01\0\x0a\x04\0\x1b[method]element.\
+parent-node\x01\x0b\x01@\x02\x04self\x01\x04texts\x01\0\x04\0\x20[method]element\
+.set-text-content\x01\x0c\x01@\x01\x04self\x01\0s\x04\0\x20[method]element.get-t\
+ext-content\x01\x0d\x01@\x03\x04self\x01\x0aevent-types\x0ahandler-ids\x01\0\x04\
+\0\"[method]element.add-event-listener\x01\x0e\x04\0%[method]element.remove-even\
+t-listener\x01\x0e\x01j\x01\x09\x01s\x01@\x01\x03tags\0\x0f\x04\0\x0ecreate-elem\
+ent\x01\x10\x01@\x01\x04texts\0\x0f\x04\0\x10create-text-node\x01\x11\x01@\0\0\x0f\
+\x04\0\x08get-body\x01\x12\x01@\x01\x02ids\0\x0f\x04\0\x11get-element-by-id\x01\x13\
+\x01@\x01\x08selectors\0\x0a\x04\0\x0equery-selector\x01\x14\x03\0\x18servo:dom/\
 document@0.1.0\x05\x01\x01@\0\x01\0\x04\0\x03run\x01\x02\x01@\x02\x0ahandler-ids\
 \x0aevent-types\x01\0\x04\0\x08on-event\x01\x03\x04\0\x13servo:dom/app@0.1.0\x04\
 \0\x0b\x09\x01\0\x03app\x03\0\0\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-c\

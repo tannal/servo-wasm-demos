@@ -1,128 +1,251 @@
-// wasm_guest/src/dioxus_renderer.rs
-use crate::bindings::servo::dom::document;
-use dioxus_core::{ElementId, Template, TemplateNode, TemplateAttribute, WriteMutations};
 use std::collections::HashMap;
+use std::rc::Rc;
 
+use dioxus_core::{
+    AttributeValue, ElementId, Template, TemplateAttribute, TemplateNode, WriteMutations,
+};
+
+use crate::bindings::servo::dom::{console, document::{
+    create_element, create_text_node, Element,
+}};
+
+/// Bridges Dioxus 0.6 VirtualDom mutations directly to native Servo DOM host calls
 pub struct ServoDomApplier {
-    pub elements: HashMap<ElementId, document::Element>,
-    pub root: document::Element,
+    pub elements: HashMap<ElementId, Rc<Element>>,
+    /// Stack of template path maps to support nested templates
+    pub template_stack: Vec<HashMap<Vec<u8>, Rc<Element>>>,
+    pub root: Rc<Element>,
+    pub stack: Vec<Rc<Element>>,
+}
+
+/// Helper: only register native click listeners on actionable interactive IDs
+fn is_interactive_id(id: &str) -> bool {
+    id.starts_with("btn-") || id.starts_with("toggle-") || id.starts_with("del-")
 }
 
 impl ServoDomApplier {
-    pub fn new(root: document::Element) -> Self {
+    pub fn new(root: Element) -> Self {
+        let root = Rc::new(root);
+        let mut elements = HashMap::new();
+        elements.insert(ElementId(0), Rc::clone(&root));
         Self {
-            elements: HashMap::new(),
+            elements,
+            template_stack: Vec::new(),
             root,
+            stack: Vec::new(),
         }
     }
 
-    pub fn build_template_node(&mut self, node: &TemplateNode) -> Option<document::Element> {
+    /// Recursively instantiates static DOM nodes from a Dioxus TemplateNode
+    fn build_template_node(
+        &mut self,
+        node: &'static TemplateNode,
+        current_path: Vec<u8>,
+        map: &mut HashMap<Vec<u8>, Rc<Element>>,
+    ) -> Option<Rc<Element>> {
         match node {
-            TemplateNode::Element { tag, attrs, children, .. } => {
-                if let Ok(elem) = document::create_element(tag) {
-                    for attr in *attrs {
-                        if let TemplateAttribute::Static { name, value, .. } = attr {
-                            elem.set_attribute(name, value);
-                            if *name == "id" {
-                                elem.add_event_listener("click", value);
-                            }
+            TemplateNode::Element {
+                tag,
+                attrs,
+                children,
+                ..
+            } => {
+                let elem = Rc::new(create_element(tag).ok()?);
+                for attr in *attrs {
+                    if let TemplateAttribute::Static { name, value, .. } = attr {
+                        let _ = elem.set_attribute(name, value);
+                        // Register native Servo click listener only for interactive buttons
+                        if *name == "id" && is_interactive_id(value) {
+                            elem.add_event_listener("click", value);
                         }
                     }
-                    for child in *children {
-                        if let Some(child_elem) = self.build_template_node(child) {
-                            elem.append_child(&child_elem);
-                        }
-                    }
-                    Some(elem)
-                } else {
-                    None
                 }
+                for (i, child) in children.iter().enumerate() {
+                    let mut child_path = current_path.clone();
+                    child_path.push(i as u8);
+                    if let Some(child_elem) = self.build_template_node(child, child_path, map) {
+                        let _ = elem.append_child(&child_elem);
+                    }
+                }
+                map.insert(current_path, Rc::clone(&elem));
+                Some(elem)
             }
             TemplateNode::Text { text } => {
-                if let Ok(span) = document::create_element("span") {
-                    span.set_text_content(text);
-                    Some(span)
-                } else {
-                    None
-                }
+                let node = Rc::new(create_text_node(text).ok()?);
+                map.insert(current_path, Rc::clone(&node));
+                Some(node)
             }
             TemplateNode::Dynamic { .. } => {
-                document::create_element("span").ok()
+                let node = Rc::new(create_text_node("").ok()?);
+                map.insert(current_path, Rc::clone(&node));
+                Some(node)
             }
         }
     }
 }
 
 impl WriteMutations for ServoDomApplier {
-    fn load_template(&mut self, template: Template, index: usize, id: ElementId) {
-        if let Some(root_node) = template.roots.get(index) {
-            if let Some(elem) = self.build_template_node(root_node) {
-                self.root.append_child(&elem);
-                self.elements.insert(id, elem);
+    fn append_children(&mut self, id: ElementId, m: usize) {
+        let start = self.stack.len().saturating_sub(m);
+        let children: Vec<Rc<Element>> = self.stack.drain(start..).collect();
+        if let Some(parent) = self.elements.get(&id) {
+            for child in children {
+                let _ = parent.append_child(&child);
             }
         }
     }
 
-    fn assign_node_id(&mut self, _path: &'static [u8], _id: ElementId) {}
+    fn assign_node_id(&mut self, path: &'static [u8], id: ElementId) {
+        for map in self.template_stack.iter().rev() {
+            if let Some(node) = map.get(path) {
+                self.elements.insert(id, Rc::clone(node));
+                return;
+            }
+        }
+        console::log(&format!("[Renderer Warn]: assign_node_id failed for path {:?}", path));
+    }
 
     fn create_placeholder(&mut self, id: ElementId) {
-        if let Ok(elem) = document::create_element("span") {
-            self.elements.insert(id, elem);
+        if let Ok(node) = create_text_node("") {
+            let node = Rc::new(node);
+            self.elements.insert(id, Rc::clone(&node));
+            self.stack.push(node);
         }
     }
 
-    fn create_text_node(&mut self, text: &str, id: ElementId) {
-        if let Ok(elem) = document::create_element("span") {
-            elem.set_text_content(text);
-            self.elements.insert(id, elem);
+    fn create_text_node(&mut self, value: &str, id: ElementId) {
+        if let Ok(node) = create_text_node(value) {
+            let node = Rc::new(node);
+            self.elements.insert(id, Rc::clone(&node));
+            self.stack.push(node);
         }
     }
 
-    fn push_root(&mut self, _id: ElementId) {}
-
-    fn append_children(&mut self, id: ElementId, m: usize) {
-        // Appending logic for dynamic elements
+    fn load_template(&mut self, template: Template, index: usize, id: ElementId) {
+        let node = &template.roots[index];
+        let path = Vec::new();
+        let mut map = HashMap::new();
+        if let Some(root_node) = self.build_template_node(node, path, &mut map) {
+            if id != ElementId(0) {
+                self.elements.insert(id, Rc::clone(&root_node));
+            }
+            self.stack.push(root_node);
+            self.template_stack.push(map);
+        }
     }
 
-    fn insert_nodes_after(&mut self, _id: ElementId, _m: usize) {}
-    fn insert_nodes_before(&mut self, _id: ElementId, _m: usize) {}
+    fn replace_node_with(&mut self, id: ElementId, m: usize) {
+        let start = self.stack.len().saturating_sub(m);
+        let new_nodes: Vec<Rc<Element>> = self.stack.drain(start..).collect();
+        if let Some(old_node) = self.elements.get(&id) {
+            if let Some(parent) = old_node.parent_node() {
+                for new_node in &new_nodes {
+                    let _ = parent.append_child(new_node);
+                }
+                let _ = parent.remove_child(old_node);
+            }
+        }
+    }
+
+    fn replace_placeholder_with_nodes(&mut self, path: &'static [u8], m: usize) {
+        let start = self.stack.len().saturating_sub(m);
+        let new_nodes: Vec<Rc<Element>> = self.stack.drain(start..).collect();
+
+        let mut found_placeholder = None;
+        for map in self.template_stack.iter_mut().rev() {
+            if let Some(placeholder) = map.remove(path) {
+                found_placeholder = Some(placeholder);
+                break;
+            }
+        }
+
+        if let Some(placeholder) = found_placeholder {
+            if let Some(parent) = placeholder.parent_node() {
+                for new_node in &new_nodes {
+                    let _ = parent.append_child(new_node);
+                }
+                let _ = parent.remove_child(&placeholder);
+            }
+        }
+    }
+
+    fn insert_nodes_after(&mut self, id: ElementId, m: usize) {
+        let start = self.stack.len().saturating_sub(m);
+        let new_nodes: Vec<Rc<Element>> = self.stack.drain(start..).collect();
+        if let Some(target) = self.elements.get(&id) {
+            if let Some(parent) = target.parent_node() {
+                for node in new_nodes {
+                    let _ = parent.append_child(&node);
+                }
+            }
+        }
+    }
+
+    fn insert_nodes_before(&mut self, id: ElementId, m: usize) {
+        let start = self.stack.len().saturating_sub(m);
+        let new_nodes: Vec<Rc<Element>> = self.stack.drain(start..).collect();
+        if let Some(target) = self.elements.get(&id) {
+            if let Some(parent) = target.parent_node() {
+                for node in new_nodes {
+                    let _ = parent.append_child(&node);
+                }
+            }
+        }
+    }
 
     fn set_attribute(
         &mut self,
         name: &'static str,
         _ns: Option<&'static str>,
-        value: &dioxus_core::AttributeValue,
+        value: &AttributeValue,
         id: ElementId,
     ) {
         if let Some(elem) = self.elements.get(&id) {
-            let str_val = match value {
-                dioxus_core::AttributeValue::Text(s) => s.clone(),
-                dioxus_core::AttributeValue::Bool(b) => b.to_string(),
-                _ => String::new(),
-            };
-            elem.set_attribute(name, &str_val);
-            if name == "id" {
-                elem.add_event_listener("click", &str_val);
+            match value {
+                AttributeValue::Text(s) => {
+                    let _ = elem.set_attribute(name, s);
+                    if name == "id" && is_interactive_id(s) {
+                        elem.add_event_listener("click", s);
+                    }
+                }
+                AttributeValue::Bool(b) => {
+                    if *b {
+                        let _ = elem.set_attribute(name, name);
+                    } else {
+                        let _ = elem.set_attribute(name, "");
+                    }
+                }
+                AttributeValue::Float(f) => {
+                    let _ = elem.set_attribute(name, &f.to_string());
+                }
+                AttributeValue::Int(i) => {
+                    let _ = elem.set_attribute(name, &i.to_string());
+                }
+                _ => {}
             }
         }
     }
 
     fn set_node_text(&mut self, value: &str, id: ElementId) {
         if let Some(elem) = self.elements.get(&id) {
-            elem.set_text_content(value);
+            let _ = elem.set_text_content(value);
         }
     }
 
-    fn create_event_listener(&mut self, name: &'static str, id: ElementId) {
-        if let Some(elem) = self.elements.get(&id) {
-            elem.add_event_listener(name, &format!("dioxus-{}", id.0));
-        }
-    }
-
-    fn remove_event_listener(&mut self, _name: &'static str, _id: ElementId) {}
-    fn replace_placeholder_with_nodes(&mut self, _path: &'static [u8], _m: usize) {}
-    fn replace_node_with(&mut self, _id: ElementId, _m: usize) {}
     fn remove_node(&mut self, id: ElementId) {
-        self.elements.remove(&id);
+        if let Some(elem) = self.elements.remove(&id) {
+            if let Some(parent) = elem.parent_node() {
+                let _ = parent.remove_child(&elem);
+            }
+        }
     }
+
+    fn push_root(&mut self, id: ElementId) {
+        if let Some(node) = self.elements.get(&id) {
+            self.stack.push(Rc::clone(node));
+        }
+    }
+
+    fn create_event_listener(&mut self, _name: &'static str, _id: ElementId) {}
+    fn remove_event_listener(&mut self, _name: &'static str, _id: ElementId) {}
 }

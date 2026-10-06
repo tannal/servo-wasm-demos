@@ -33,7 +33,7 @@ impl Guest for Component {
     }
 
     fn on_event(handler_id: String, _event_type: String) {
-        // dioxus_task_board::on_event(&handler_id);
+        dioxus_task_board::on_event(&handler_id);
         // raw_reactive_dashboard::on_event(&handler_id);
         // dioxus_mathml_playground::on_event(&handler_id);
         dioxus_todo::on_event(&handler_id);

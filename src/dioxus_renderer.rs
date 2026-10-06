@@ -4,27 +4,62 @@ use std::rc::Rc;
 use dioxus_core::{
     AttributeValue, ElementId, Template, TemplateAttribute, TemplateNode, WriteMutations,
 };
+use dioxus_html::{
+    set_event_converter, HtmlEventConverter, MouseData, PlatformEventData, SerializedMouseData,
+    AnimationData, ClipboardData, CompositionData, DragData, FocusData, FormData,
+    ImageData, KeyboardData, MediaData, MountedData, PointerData,
+    ResizeData, ScrollData, SelectionData, ToggleData, TouchData, TransitionData,
+    VisibleData, WheelData,
+};
 
 use crate::bindings::servo::dom::{console, document::{
     create_element, create_text_node, Element,
 }};
 
+/// Event converter that bridges native Servo click events to Dioxus MouseData
+struct ServoEventConverter;
+impl HtmlEventConverter for ServoEventConverter {
+    fn convert_mouse_data(&self, event: &PlatformEventData) -> MouseData {
+        event
+            .downcast::<SerializedMouseData>()
+            .cloned()
+            .map(MouseData::new)
+            .unwrap_or_else(|| MouseData::new(SerializedMouseData::default()))
+    }
+    fn convert_animation_data(&self, _: &PlatformEventData) -> AnimationData { unimplemented!() }
+    fn convert_clipboard_data(&self, _: &PlatformEventData) -> ClipboardData { unimplemented!() }
+    fn convert_composition_data(&self, _: &PlatformEventData) -> CompositionData { unimplemented!() }
+    fn convert_drag_data(&self, _: &PlatformEventData) -> DragData { unimplemented!() }
+    fn convert_focus_data(&self, _: &PlatformEventData) -> FocusData { unimplemented!() }
+    fn convert_form_data(&self, _: &PlatformEventData) -> FormData { unimplemented!() }
+    fn convert_image_data(&self, _: &PlatformEventData) -> ImageData { unimplemented!() }
+    fn convert_keyboard_data(&self, _: &PlatformEventData) -> KeyboardData { unimplemented!() }
+    fn convert_media_data(&self, _: &PlatformEventData) -> MediaData { unimplemented!() }
+    fn convert_mounted_data(&self, _: &PlatformEventData) -> MountedData { unimplemented!() }
+    fn convert_pointer_data(&self, _: &PlatformEventData) -> PointerData { unimplemented!() }
+    fn convert_resize_data(&self, _: &PlatformEventData) -> ResizeData { unimplemented!() }
+    fn convert_scroll_data(&self, _: &PlatformEventData) -> ScrollData { unimplemented!() }
+    fn convert_selection_data(&self, _: &PlatformEventData) -> SelectionData { unimplemented!() }
+    fn convert_toggle_data(&self, _: &PlatformEventData) -> ToggleData { unimplemented!() }
+    fn convert_touch_data(&self, _: &PlatformEventData) -> TouchData { unimplemented!() }
+    fn convert_transition_data(&self, _: &PlatformEventData) -> TransitionData { unimplemented!() }
+    fn convert_visible_data(&self, _: &PlatformEventData) -> VisibleData { unimplemented!() }
+    fn convert_wheel_data(&self, _: &PlatformEventData) -> WheelData { unimplemented!() }
+}
+
 /// Bridges Dioxus 0.6 VirtualDom mutations directly to native Servo DOM host calls
 pub struct ServoDomApplier {
     pub elements: HashMap<ElementId, Rc<Element>>,
-    /// Stack of template path maps to support nested templates
     pub template_stack: Vec<HashMap<Vec<u8>, Rc<Element>>>,
     pub root: Rc<Element>,
     pub stack: Vec<Rc<Element>>,
 }
 
-/// Helper: only register native click listeners on actionable interactive IDs
-fn is_interactive_id(id: &str) -> bool {
-    id.starts_with("btn-") || id.starts_with("toggle-") || id.starts_with("del-")
-}
-
 impl ServoDomApplier {
     pub fn new(root: Element) -> Self {
+        // Register the event converter so Dioxus can convert PlatformEventData to MouseData/FormData
+        set_event_converter(Box::new(ServoEventConverter));
+
         let root = Rc::new(root);
         let mut elements = HashMap::new();
         elements.insert(ElementId(0), Rc::clone(&root));
@@ -36,7 +71,6 @@ impl ServoDomApplier {
         }
     }
 
-    /// Recursively instantiates static DOM nodes from a Dioxus TemplateNode
     fn build_template_node(
         &mut self,
         node: &'static TemplateNode,
@@ -54,10 +88,6 @@ impl ServoDomApplier {
                 for attr in *attrs {
                     if let TemplateAttribute::Static { name, value, .. } = attr {
                         let _ = elem.set_attribute(name, value);
-                        // Register native Servo click listener only for interactive buttons
-                        if *name == "id" && is_interactive_id(value) {
-                            elem.add_event_listener("click", value);
-                        }
                     }
                 }
                 for (i, child) in children.iter().enumerate() {
@@ -204,9 +234,6 @@ impl WriteMutations for ServoDomApplier {
             match value {
                 AttributeValue::Text(s) => {
                     let _ = elem.set_attribute(name, s);
-                    if name == "id" && is_interactive_id(s) {
-                        elem.add_event_listener("click", s);
-                    }
                 }
                 AttributeValue::Bool(b) => {
                     if *b {
@@ -246,6 +273,17 @@ impl WriteMutations for ServoDomApplier {
         }
     }
 
-    fn create_event_listener(&mut self, _name: &'static str, _id: ElementId) {}
-    fn remove_event_listener(&mut self, _name: &'static str, _id: ElementId) {}
+    fn create_event_listener(&mut self, name: &'static str, id: ElementId) {
+        if let Some(elem) = self.elements.get(&id) {
+            let handler_id = format!("dioxus-{}", id.0);
+            elem.add_event_listener(name, &handler_id);
+        }
+    }
+
+    fn remove_event_listener(&mut self, name: &'static str, id: ElementId) {
+        if let Some(elem) = self.elements.get(&id) {
+            let handler_id = format!("dioxus-{}", id.0);
+            elem.remove_event_listener(name, &handler_id);
+        }
+    }
 }

@@ -1,6 +1,7 @@
 use dioxus_core::{Element, ElementId, Event, VirtualDom};
 use dioxus_core_macro::rsx;
 use dioxus_core::IntoDynNode;
+use dioxus_html::point_interaction::InteractionLocation;
 use dioxus_html::{self as dioxus_elements, PlatformEventData};
 use dioxus_signals::{Readable, Signal, Writable};
 use dioxus_hooks::{use_memo, use_signal};
@@ -9,7 +10,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::bindings::servo::dom::{console, document};
-use crate::dioxus_renderer::ServoDomApplier;
+use crate::dioxus_renderer::{ServoDomApplier, ServoMouseData};
+use dioxus_html::point_interaction::PointerInteraction;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TodoItem {
@@ -57,7 +59,13 @@ fn TodoApp() -> Element {
                 button {
                     class: "btn btn-primary",
                     style: "white-space: nowrap;",
-                    onclick: move |_| {
+                    onclick: move |evt| {
+                        let coords = evt.client_coordinates();
+                        let trigger = evt.trigger_button();
+                        console::log(&format!(
+                            "[Click]: Position ({}, {}), Button: {:?}", 
+                            coords.x, coords.y, trigger
+                        ));
                         let mut task_text = String::new();
                         if let Ok(input_elem) = document::get_element_by_id("new-todo-input") {
                             task_text = input_elem.get_property("value").trim().to_string();
@@ -153,7 +161,6 @@ pub fn run() {
     console::log("[Dioxus Todo]: Mounted successfully with encapsulated event listeners!");
 }
 
-/// Universal Event Dispatcher: Routes any native Servo event directly into Dioxus VDom!
 /// Universal Event Dispatcher: Routes native Servo events directly into Dioxus VDom closures!
 pub fn on_event(handler_id: &str) {
     if let Some(id_str) = handler_id.strip_prefix("dioxus-") {
@@ -161,14 +168,14 @@ pub fn on_event(handler_id: &str) {
             let element_id = ElementId(raw_id);
             STATE.with(|s| {
                 if let Some(AppState { vdom, applier }) = s.borrow_mut().as_mut() {
-                    // 1. Construct PlatformEventData wrapping Box<dyn Any>
-                    let event_data = Rc::new(PlatformEventData::new(Box::new(())));
+                    // 1. Pack native ServoMouseData directly (zero serde, zero serialization)
+                    let mouse_data = ServoMouseData::default();
+                    let raw_data = PlatformEventData::new(Box::new(mouse_data));
+                    let event_data: Rc<dyn std::any::Any> = Rc::new(raw_data);
                     let event: Event<dyn std::any::Any> = Event::new(event_data, true);
-
-                    // 2. Dispatch using the non-deprecated runtime API
+                    // 2. Dispatch event to target element closure
                     vdom.runtime().handle_event("click", event, element_id);
-
-                    // 3. Apply mutations immediately to Servo's live DOM
+                    // 3. Render and apply reactive DOM mutations immediately
                     vdom.render_immediate(applier);
                 }
             });

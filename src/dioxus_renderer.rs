@@ -12,19 +12,72 @@ use dioxus_html::{
     VisibleData, WheelData,
 };
 
+use dioxus_html::geometry::{ClientPoint, Coordinates, ElementPoint, PagePoint, ScreenPoint};
+use dioxus_html::input_data::{MouseButton, MouseButtonSet, keyboard_types};
+use dioxus_html::point_interaction::{
+    InteractionElementOffset, InteractionLocation, ModifiersInteraction, PointerInteraction,
+};
+use dioxus_html::HasMouseData;
+use keyboard_types::Modifiers;
+
 use crate::bindings::servo::dom::{console, document::{
     create_element, create_text_node, Element,
 }};
+
+/// Native, zero-serialization in-memory mouse event data for Servo DOM
+#[derive(Default, Clone)]
+pub struct ServoMouseData {
+    pub client_x: f64,
+    pub client_y: f64,
+    pub button: Option<MouseButton>,
+}
+impl HasMouseData for ServoMouseData {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
+impl InteractionLocation for ServoMouseData {
+    fn client_coordinates(&self) -> ClientPoint {
+        ClientPoint::new(self.client_x, self.client_y)
+    }
+    fn page_coordinates(&self) -> PagePoint {
+        PagePoint::new(self.client_x, self.client_y)
+    }
+    fn screen_coordinates(&self) -> ScreenPoint {
+        ScreenPoint::new(self.client_x, self.client_y)
+    }
+}
+impl InteractionElementOffset for ServoMouseData {
+    fn element_coordinates(&self) -> ElementPoint {
+        ElementPoint::new(self.client_x, self.client_y)
+    }
+    fn coordinates(&self) -> Coordinates {
+        todo!("")
+    }
+}
+impl ModifiersInteraction for ServoMouseData {
+    fn modifiers(&self) -> Modifiers {
+        Modifiers::empty()
+    }
+}
+impl PointerInteraction for ServoMouseData {
+    fn held_buttons(&self) -> MouseButtonSet {
+        MouseButtonSet::empty()
+    }
+    fn trigger_button(&self) -> Option<MouseButton> {
+        self.button.or(Some(MouseButton::Primary))
+    }
+}
 
 /// Event converter that bridges native Servo click events to Dioxus MouseData
 struct ServoEventConverter;
 impl HtmlEventConverter for ServoEventConverter {
     fn convert_mouse_data(&self, event: &PlatformEventData) -> MouseData {
         event
-            .downcast::<SerializedMouseData>()
+            .downcast::<ServoMouseData>()
             .cloned()
             .map(MouseData::new)
-            .unwrap_or_else(|| MouseData::new(SerializedMouseData::default()))
+            .unwrap_or_else(|| MouseData::new(ServoMouseData::default()))
     }
     fn convert_animation_data(&self, _: &PlatformEventData) -> AnimationData { unimplemented!() }
     fn convert_clipboard_data(&self, _: &PlatformEventData) -> ClipboardData { unimplemented!() }

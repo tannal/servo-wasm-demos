@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8">
-  <title>First-Class Wasm Reactive Demo</title>
+  <title>Servo Wasm Component Platform Demo</title>
   <style>
     :root {
       --bg: #181825;
@@ -13,69 +13,80 @@
       --secondary: #fab387;
       --text: #cdd6f4;
       --subtext: #a6adc8;
+      --surface: #313244;
+      --border: #45475a;
     }
 
     body {
       margin: 0;
-      padding: 40px;
+      padding: 30px;
       background: var(--bg);
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace, sans-serif;
       display: flex;
       justify-content: center;
+      gap: 28px;
     }
 
-    .wasm-card {
-      background: var(--card-bg);
-      border: 1px solid #313244;
-      border-radius: 16px;
-      padding: 32px;
-      width: 600px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    }
-
-    h1 {
-      margin-top: 0;
-      color: var(--accent);
-      font-size: 1.6rem;
-    }
-
-    .subtitle {
-      color: var(--subtext);
-      margin-bottom: 24px;
-      font-size: 0.95rem;
-    }
-
-    .counter-section {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 28px;
+    /* LEFT PANEL: JavaScript Host Controller & Bridge */
+    .js-panel {
       background: #11111b;
-      padding: 16px;
+      border: 1px solid var(--border);
       border-radius: 12px;
+      padding: 24px;
+      width: 320px;
+      height: fit-content;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     }
 
-    .counter-badge {
-      font-size: 2.2rem;
+    .js-panel h2 {
+      margin-top: 0;
+      font-size: 1.05rem;
+      letter-spacing: 0.5px;
+      color: #fab387;
+      border-bottom: 1px solid var(--surface);
+      padding-bottom: 8px;
+    }
+
+    .js-panel p {
+      font-size: 0.8rem;
+      color: var(--subtext);
+      line-height: 1.4;
+      margin-bottom: 16px;
+    }
+
+    .control-label {
+      font-size: 0.75rem;
       font-weight: bold;
-      color: var(--primary);
-      min-width: 60px;
-      text-align: center;
+      color: var(--accent);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .js-input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--surface);
+      background: #181825;
+      color: var(--text);
+      font-size: 0.85rem;
+      outline: none;
+      margin-bottom: 14px;
+    }
+
+    .js-input:focus {
+      border-color: var(--accent);
     }
 
     .btn {
       border: none;
-      padding: 10px 18px;
-      font-size: 0.95rem;
+      padding: 8px 14px;
+      font-size: 0.8rem;
       font-weight: 600;
-      border-radius: 8px;
+      border-radius: 6px;
       cursor: pointer;
-      transition: transform 0.1s;
-    }
-
-    .btn:hover {
-      transform: scale(1.04);
     }
 
     .btn-primary {
@@ -84,69 +95,236 @@
     }
 
     .btn-secondary {
-      background: #313244;
+      background: var(--surface);
       color: var(--text);
+      border: 1px solid var(--border);
     }
 
-    .btn-accent {
-      background: var(--accent);
-      color: #11111b;
+    .btn-block {
       width: 100%;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
+      text-align: left;
     }
 
-    .task-card {
-      background: #313244;
-      border-left: 4px solid var(--accent);
-      padding: 10px 14px;
+    .telemetry-card {
+      margin-top: 18px;
+      background: #181825;
+      border: 1px solid var(--surface);
       border-radius: 6px;
-      margin-top: 8px;
-      font-size: 0.9rem;
-    }
-
-    .log-section {
-      margin-top: 24px;
-      border-top: 1px solid #313244;
-      padding-top: 16px;
-    }
-
-    .log-section h3 {
-      margin: 0 0 12px 0;
-      font-size: 1rem;
-      color: var(--subtext);
-    }
-
-    ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      max-height: 120px;
-      overflow-y: auto;
-    }
-
-    .log-item {
+      padding: 12px;
       font-family: monospace;
-      font-size: 0.85rem;
+      font-size: 0.75rem;
+      line-height: 1.5;
+      color: #89b4fa;
+    }
+
+    /* RIGHT PANEL: Dioxus VirtualDOM Wasm Container */
+    .wasm-card {
+      background: var(--card-bg);
+      border: 1px solid var(--surface);
+      border-radius: 12px;
+      padding: 26px;
+      width: 620px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+    }
+
+    .subtitle {
       color: var(--subtext);
-      padding: 4px 0;
-      border-bottom: 1px solid #1e1e2e;
+      margin-top: 0;
+      margin-bottom: 16px;
+      font-size: 0.85rem;
+    }
+
+    .chip-btn {
+      background: #181825;
+      border: 1px solid var(--surface);
+      color: #89b4fa;
+      font-family: monospace;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .chip-btn:hover {
+      border-color: var(--accent);
+    }
+
+    .filter-btn {
+      background: transparent;
+      border: 1px solid var(--surface);
+      color: var(--subtext);
+      padding: 4px 8px;
+      font-size: 0.72rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .filter-btn.active {
+      background: var(--surface);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn-action {
+      background: transparent;
+      border: none;
+      color: var(--subtext);
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .btn-checkbox {
+      border: 1px solid var(--surface);
+      background: #11111b;
+      color: var(--primary);
+      font-family: monospace;
+      font-size: 0.8rem;
+      font-weight: bold;
+      border-radius: 4px;
+      padding: 3px 6px;
+      cursor: pointer;
+    }
+
+    .btn-delete {
+      border: none;
+      background: #45475a;
+      color: #f38ba8;
+      font-size: 0.72rem;
+      font-weight: bold;
+      border-radius: 4px;
+      padding: 4px 8px;
+      cursor: pointer;
     }
   </style>
 </head>
 
 <body>
-  <button style="color: red;" onclick="onClick()">change the color</button>
+  <!-- LEFT: JavaScript Bridge Controller -->
+  <div class="js-panel">
+    <h2>JS &rarr; WASM BRIDGE</h2>
+    <p>JavaScript communicating with the Dioxus Wasm Component via DOM events and shared attributes.</p>
 
+    <!-- 1. JS-Driven Live Search -->
+    <div class="control-label">Live Search from JS:</div>
+    <input type="text" class="js-input" id="js-search-field" placeholder="Type to filter Wasm VDOM..."
+      oninput="jsRelaySearch(this.value)" />
+
+    <!-- 2. JS Batch Data Ingestion -->
+    <div class="control-label">JS Data Ingestion:</div>
+    <button class="btn btn-secondary btn-block" onclick="jsBatchSeed()">
+      [JS] Seed 3 Custom Tasks
+    </button>
+
+    <!-- 3. Dynamic Theme Adjustment -->
+    <div class="control-label">Dynamic Theme Control:</div>
+    <button class="btn btn-secondary btn-block" onclick="jsToggleTheme()">
+      [JS] Toggle Palette Theme
+    </button>
+
+    <!-- 4. Real-time Telemetry Observer (Reads Wasm data-* attributes) -->
+    <div class="telemetry-card">
+      <div style="font-weight: bold; color: #fab387; margin-bottom: 4px;">
+        JS TELEMETRY OBSERVER:
+      </div>
+      <div id="telemetry-data">Observing Wasm Component...</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Dioxus VirtualDOM Mount Point -->
   <div id="todo-app-root"></div>
-  
+
+  <!-- Native Wasm Component: Loaded directly by Servo with zero JS glue -->
   <script type="wasm-component" src="wasm_guest.wasm"></script>
+
   <script>
-    function onClick() {
-      const element = document.querySelector('#todo-list-container');
-      if (element) {
-        element.style.backgroundColor = 'red';
+    // Attach real-time input trigger to the Wasm search field once mounted
+    function hookWasmInput() {
+      const wasmInput = document.querySelector('#search-input');
+      const wasmBtn = document.querySelector('#btn-search-apply');
+      if (wasmInput && wasmBtn && !wasmInput._hooked) {
+        wasmInput._hooked = true;
+        wasmInput.addEventListener('input', () => {
+          wasmBtn.click();
+        });
+        wasmInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') wasmBtn.click();
+        });
       }
     }
+    setInterval(hookWasmInput, 200);
+  </script>
+
+  <!-- JavaScript Bridge Implementation -->
+  <script>
+    // 1. Live Search Relay: JS drives the Wasm Search Signal in real-time
+    function jsRelaySearch(text) {
+      const wasmSearchInput = document.querySelector('#search-input');
+      const wasmSearchBtn = document.querySelector('#btn-search-apply');
+      if (wasmSearchInput && wasmSearchBtn) {
+        wasmSearchInput.value = text;
+        wasmSearchBtn.click();
+      }
+    }
+
+    // 2. JS Batch Seed: Programmatically inject items from JS into Wasm
+    function jsBatchSeed() {
+      const tasks = [
+        "WIT Canonical ABI marshalling",
+        "Layout Worklet zero-copy memory pool",
+        "WebAssembly GC vs Linear Memory"
+      ];
+      const input = document.querySelector('#new-todo-input');
+      const addBtn = document.querySelector('#btn-add-task');
+      if (input && addBtn) {
+        tasks.forEach(task => {
+          input.value = task;
+          addBtn.click();
+        });
+      }
+    }
+
+    // 3. Dynamic Theme Switching: Alters CSS custom properties across the DOM
+    let altTheme = false;
+    function jsToggleTheme() {
+      altTheme = !altTheme;
+      const root = document.documentElement;
+      if (altTheme) {
+        root.style.setProperty('--card-bg', '#1e2030');
+        root.style.setProperty('--accent', '#c6a0f6');
+        root.style.setProperty('--primary', '#8aadf4');
+      } else {
+        root.style.setProperty('--card-bg', '#1e1e2e');
+        root.style.setProperty('--accent', '#89b4fa');
+        root.style.setProperty('--primary', '#a6e3a1');
+      }
+    }
+
+    // 4. Live Telemetry: Inspects data-* attributes updated by Dioxus
+    function pollWasmTelemetry() {
+      const root = document.querySelector('#todo-app-root');
+      const display = document.querySelector('#telemetry-data');
+      if (root && display) {
+        const total = root.getAttribute('data-total') || '0';
+        const active = root.getAttribute('data-active') || '0';
+        const done = root.getAttribute('data-completed') || '0';
+        const matches = root.getAttribute('data-matches') || '0';
+        const query = root.getAttribute('data-query') || '(none)';
+
+        display.innerHTML = `
+          Total Items:   ${total}<br>
+          Active Tasks:  ${active}<br>
+          Done Tasks:    ${done}<br>
+          Matches Found: ${matches}<br>
+          Current Query: "${query}"
+        `;
+      }
+    }
+
+    setInterval(pollWasmTelemetry, 300);
   </script>
 </body>
 

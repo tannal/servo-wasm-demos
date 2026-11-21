@@ -19,6 +19,10 @@ A ChatGPT-style chat client written entirely in Rust:
 
 ![Conversation](screenshots/02-chat.png)
 
+![Providers](screenshots/03-providers.png)
+
+![DeepSeek key error](screenshots/05-deepseek.png)
+
 ## Build the components
 
 ```sh
@@ -31,7 +35,24 @@ cargo component build --release --target wasm32-unknown-unknown
 cp target/wasm32-unknown-unknown/release/railwind.wasm .
 ```
 
-## Run in Servo
+## Hosted page
+
+The same artifacts are deployed to:
+
+<https://tannal.github.io/chat.html>
+
+Build Servo from the `wasm-chat` branch and open that URL.  The page has no
+JavaScript or application CSS; it defaults to DeepSeek and asks for an API key
+in the sidebar.  Any OpenAI-compatible endpoint can be entered instead.
+
+```sh
+git clone -b wasm-chat https://github.com/tannal/servo.git
+cd servo
+./mach build
+./mach run https://tannal.github.io/chat.html
+```
+
+## Run locally in Servo
 
 Start a static server in this directory:
 
@@ -55,6 +76,27 @@ markup. The entire loader is:
 
 Components are recognised by their magic bytes, so no `type` attribute is
 needed.  The two scripts may load in either order.
+
+## Providers
+
+The sidebar lets you choose a provider and edit the base URL, model and API key:
+
+- **Ollama** (default on localhost): native `/api/tags` discovery and
+  `/api/chat`, no key.
+- **llama.cpp**: start `llama-server` with GPU offload and choose the
+  `llama.cpp` preset (base `http://127.0.0.1:8080/v1`, no key):
+
+  ```sh
+  llama-server -m /path/Qwen3.5-27B-Q4_K_M.gguf -ngl 99 -c 8192 --port 8080
+  ```
+
+- **DeepSeek**: default on `tannal.github.io`; base
+  `https://api.deepseek.com/v1`, model `deepseek-chat`, paste your key.
+- **Custom**: any OpenAI-compatible base URL (boat.dev-style gateways,
+  OpenRouter, vLLM, OpenAI, a remote Ollama `/v1`, ...).
+
+The key is read from the password field at request time and is never stored or
+logged.
 
 ## Ollama
 

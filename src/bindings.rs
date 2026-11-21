@@ -1194,6 +1194,42 @@ pub mod servo {
                 }
             }
             #[allow(unused_unsafe, clippy::all)]
+            pub fn get_url() -> _rt::String {
+                unsafe {
+                    #[cfg_attr(target_pointer_width = "64", repr(align(8)))]
+                    #[cfg_attr(target_pointer_width = "32", repr(align(4)))]
+                    struct RetArea(
+                        [::core::mem::MaybeUninit<
+                            u8,
+                        >; 2 * ::core::mem::size_of::<*const u8>()],
+                    );
+                    let mut ret_area = RetArea(
+                        [::core::mem::MaybeUninit::uninit(); 2
+                            * ::core::mem::size_of::<*const u8>()],
+                    );
+                    let ptr0 = ret_area.0.as_mut_ptr().cast::<u8>();
+                    #[cfg(target_arch = "wasm32")]
+                    #[link(wasm_import_module = "servo:dom/document@0.1.0")]
+                    unsafe extern "C" {
+                        #[link_name = "get-url"]
+                        fn wit_import1(_: *mut u8);
+                    }
+                    #[cfg(not(target_arch = "wasm32"))]
+                    unsafe extern "C" fn wit_import1(_: *mut u8) {
+                        unreachable!()
+                    }
+                    unsafe { wit_import1(ptr0) };
+                    let l2 = *ptr0.add(0).cast::<*mut u8>();
+                    let l3 = *ptr0
+                        .add(::core::mem::size_of::<*const u8>())
+                        .cast::<usize>();
+                    let len4 = l3;
+                    let bytes4 = _rt::Vec::from_raw_parts(l2.cast(), len4, len4);
+                    let result5 = _rt::string_lift(bytes4);
+                    result5
+                }
+            }
+            #[allow(unused_unsafe, clippy::all)]
             pub fn get_head() -> Result<Element, _rt::String> {
                 unsafe {
                     #[cfg_attr(target_pointer_width = "64", repr(align(8)))]
@@ -1786,9 +1822,9 @@ pub(crate) use __export_app_impl as export;
 )]
 #[doc(hidden)]
 #[allow(clippy::octal_escapes)]
-pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1835] = *b"\
-\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xb1\x0d\x01A\x02\x01\
-A\x10\x01B<\x01r\x08\x0ahandler-ids\x0aevent-types\x03keys\x05values\x07checked\x7f\
+pub static __WIT_BINDGEN_COMPONENT_TYPE: [u8; 1852] = *b"\
+\0asm\x0d\0\x01\0\0\x19\x16wit-component-encoding\x04\0\x07\xc2\x0d\x01A\x02\x01\
+A\x10\x01B>\x01r\x08\x0ahandler-ids\x0aevent-types\x03keys\x05values\x07checked\x7f\
 \x05shift\x7f\x08client-xu\x08client-yu\x04\0\x0aevent-data\x03\0\0\x04\0\x07ele\
 ment\x03\x01\x01h\x02\x01@\x03\x04self\x03\x04names\x05values\x01\0\x04\0\x1d[me\
 thod]element.set-attribute\x01\x04\x01ks\x01@\x02\x04self\x03\x04names\0\x05\x04\
@@ -1813,18 +1849,19 @@ ethod]element.file-type\x01\x14\x01p}\x01j\x01\x15\x01s\x01@\x02\x04self\x03\x05
 indexy\0\x16\x04\0\x1a[method]element.file-bytes\x01\x17\x04\0\x1b[method]elemen\
 t.clear-files\x01\x12\x01j\x01\x0c\x01s\x01@\x01\x03tags\0\x18\x04\0\x0ecreate-e\
 lement\x01\x19\x01@\x01\x04texts\0\x18\x04\0\x10create-text-node\x01\x1a\x01@\0\0\
-\x18\x04\0\x08get-body\x01\x1b\x04\0\x08get-head\x01\x1b\x04\0\x14get-document-e\
-lement\x01\x1b\x01@\x01\x02ids\0\x18\x04\0\x11get-element-by-id\x01\x1c\x01@\x01\
-\x08selectors\0\x0d\x04\0\x0equery-selector\x01\x1d\x03\0\x18servo:dom/document@\
-0.1.0\x05\0\x02\x03\0\0\x0aevent-data\x03\0\x0aevent-data\x03\0\x01\x01B\x03\x01\
-@\x01\x07messages\x01\0\x04\0\x03log\x01\0\x04\0\x05error\x01\0\x03\0\x17servo:d\
-om/console@0.1.0\x05\x03\x01B\x06\x01o\x02ss\x01p\0\x01p}\x01k\x02\x01@\x04\x03u\
-rls\x06methods\x07headers\x01\x04body\x03\0y\x04\0\x05fetch\x01\x04\x03\0\x15ser\
-vo:dom/fetch@0.1.0\x05\x04\x01@\0\x01\0\x04\0\x03run\x01\x05\x01@\x01\x05event\x02\
-\x01\0\x04\0\x08on-event\x01\x06\x01p}\x01ks\x01@\x05\x0arequest-idy\x02ok\x7f\x06\
-status{\x04body\x07\x05error\x08\x01\0\x04\0\x08on-fetch\x01\x09\x04\0\x13servo:\
-dom/app@0.1.0\x04\0\x0b\x09\x01\0\x03app\x03\0\0\0G\x09producers\x01\x0cprocesse\
-d-by\x02\x0dwit-component\x070.227.1\x10wit-bindgen-rust\x060.41.0";
+\x18\x04\0\x08get-body\x01\x1b\x01@\0\0s\x04\0\x07get-url\x01\x1c\x04\0\x08get-h\
+ead\x01\x1b\x04\0\x14get-document-element\x01\x1b\x01@\x01\x02ids\0\x18\x04\0\x11\
+get-element-by-id\x01\x1d\x01@\x01\x08selectors\0\x0d\x04\0\x0equery-selector\x01\
+\x1e\x03\0\x18servo:dom/document@0.1.0\x05\0\x02\x03\0\0\x0aevent-data\x03\0\x0a\
+event-data\x03\0\x01\x01B\x03\x01@\x01\x07messages\x01\0\x04\0\x03log\x01\0\x04\0\
+\x05error\x01\0\x03\0\x17servo:dom/console@0.1.0\x05\x03\x01B\x06\x01o\x02ss\x01\
+p\0\x01p}\x01k\x02\x01@\x04\x03urls\x06methods\x07headers\x01\x04body\x03\0y\x04\
+\0\x05fetch\x01\x04\x03\0\x15servo:dom/fetch@0.1.0\x05\x04\x01@\0\x01\0\x04\0\x03\
+run\x01\x05\x01@\x01\x05event\x02\x01\0\x04\0\x08on-event\x01\x06\x01p}\x01ks\x01\
+@\x05\x0arequest-idy\x02ok\x7f\x06status{\x04body\x07\x05error\x08\x01\0\x04\0\x08\
+on-fetch\x01\x09\x04\0\x13servo:dom/app@0.1.0\x04\0\x0b\x09\x01\0\x03app\x03\0\0\
+\0G\x09producers\x01\x0cprocessed-by\x02\x0dwit-component\x070.227.1\x10wit-bind\
+gen-rust\x060.41.0";
 #[inline(never)]
 #[doc(hidden)]
 pub fn __link_custom_section_describing_imports() {

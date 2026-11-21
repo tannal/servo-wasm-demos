@@ -65,6 +65,7 @@ interface document {
     create-element: func(tag: string) -> result<element, string>;
     create-text-node: func(text: string) -> result<element, string>;
     get-body: func() -> result<element, string>;
+    get-url: func() -> string;
     get-head: func() -> result<element, string>;
     get-document-element: func() -> result<element, string>;
     get-element-by-id: func(id: string) -> result<element, string>;

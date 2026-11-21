@@ -1,15 +1,37 @@
 package servo:dom@0.1.0;
 
+/// Logging facilities for native WebAssembly components.
 interface console {
     log: func(message: string);
     error: func(message: string);
 }
 
+/// A minimal, native DOM surface.  Handles are owned resources; dropping them
+/// releases the corresponding entry in the host handle table.  All strings are
+/// UTF-8 and all byte buffers are copied through the Component Model canonical
+/// ABI, so guests never see raw pointers or Servo's linear memory.
 interface document {
+    /// The payload delivered to `on-event`.  This carries the small amount of
+    /// information that Dioxus/reactive UIs need without a round-trip back into
+    /// the DOM: key events, form values, and pointer coordinates.
+    record event-data {
+        handler-id: string,
+        event-type: string,
+        key: string,
+        value: string,
+        checked: bool,
+        shift: bool,
+        client-x: f64,
+        client-y: f64,
+    }
+
     resource element {
         set-attribute: func(name: string, value: string);
         get-attribute: func(name: string) -> option<string>;
+        remove-attribute: func(name: string);
 
+        /// Read/write common IDL properties.  Currently `value` and `checked`
+        /// are supported for form controls.
         get-property: func(name: string) -> string;
         set-property: func(name: string, value: string);
 
@@ -18,24 +40,64 @@ interface document {
         remove-child: func(child: borrow<element>);
         replace-child: func(new-child: borrow<element>, old-child: borrow<element>);
         parent-node: func() -> option<element>;
+        next-sibling: func() -> option<element>;
 
         set-text-content: func(text: string);
         get-text-content: func() -> string;
+
         add-event-listener: func(event-type: string, handler-id: string);
         remove-event-listener: func(event-type: string, handler-id: string);
+
+        focus: func();
+        blur: func();
+        scroll-into-view: func();
+
+        /// File attachment support for `<input type="file">`.  The host reads
+        /// the selected `File` synchronously from Servo's Blob store; this is
+        /// intentionally limited to user-selected files.
+        file-count: func() -> u32;
+        file-name: func(index: u32) -> string;
+        file-type: func(index: u32) -> string;
+        file-bytes: func(index: u32) -> result<list<u8>, string>;
+        clear-files: func();
     }
 
     create-element: func(tag: string) -> result<element, string>;
     create-text-node: func(text: string) -> result<element, string>;
     get-body: func() -> result<element, string>;
+    get-head: func() -> result<element, string>;
+    get-document-element: func() -> result<element, string>;
     get-element-by-id: func(id: string) -> result<element, string>;
     query-selector: func(selector: string) -> option<element>;
 }
 
+/// Asynchronous networking.  `fetch` returns immediately with a request id;
+/// the host invokes the guest's `on-fetch` export on the ScriptThread once the
+/// request completes.  Requests are performed off the script thread so that
+/// long-running LLM generations do not block rendering or input.
+interface fetch {
+    fetch: func(
+        url: string,
+        method: string,
+        headers: list<tuple<string, string>>,
+        body: option<list<u8>>,
+    ) -> u32;
+}
+
 world app {
+    use document.{event-data};
+
     import console;
     import document;
+    import fetch;
 
     export run: func();
-    export on-event: func(handler-id: string, event-type: string);
+    export on-event: func(event: event-data);
+    export on-fetch: func(
+        request-id: u32,
+        ok: bool,
+        status: u16,
+        body: list<u8>,
+        error: option<string>,
+    );
 }
